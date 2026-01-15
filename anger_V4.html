@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>炸掉坏心情 - 极简版</title>
+    <style>
+        /* 全局极简样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", "PingFang SC", sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            transition: background-color 0.3s;
+        }
+
+        /* 爆炸震动效果 */
+        body.shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(3px); }
+        }
+
+        /* 顶部导航（极简） */
+        .tab-nav {
+            display: flex;
+            background: linear-gradient(135deg, #e53e3e 0%, #ed8936 100%);
+            color: white;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(229, 62, 62, 0.2);
+        }
+
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 16px 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .tab-item.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 内容区域 */
+        .content {
+            margin-top: 65px;
+            padding: 20px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 爆炸页面核心样式 */
+        .explode-box {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hint-text {
+            font-size: 15px;
+            color: #e53e3e;
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* 单一输入框 */
+        #bad-mood-content {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid #fcd5d5;
+            border-radius: 8px;
+            font-size: 16px;
+            min-height: 200px;
+            resize: vertical;
+            background-color: #fff8f8;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+            z-index: 10;
+            position: relative;
+        }
+
+        #bad-mood-content:focus {
+            outline: none;
+            border-color: #e53e3e;
+            box-shadow: 0 0 0 2px rgba(229, 62, 62, 0.1);
+        }
+
+        /* 炸弹按钮（核心交互） */
+        .explode-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #e53e3e 0%, #ed8936 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 10;
+            position: relative;
+        }
+
+        .explode-btn:hover {
+            background: linear-gradient(135deg, #d32f2f 0%, #f57c00 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
+        }
+
+        .explode-btn:active {
+            transform: scale(0.98);
+        }
+
+        .explode-btn:disabled {
+            background: #f5c6c6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 爆炸特效容器 */
+        .explosion-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+
+        /* 爆炸碎片 */
+        .explosion-piece {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ed8936;
+            opacity: 0.8;
+            animation: explode 0.6s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                opacity: 1;
+                transform: scale(0);
+                top: 50%;
+                left: 50%;
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.5) translate(var(--x), var(--y));
+            }
+        }
+
+        /* 历史记录（极简） */
+        .history-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .date-group {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 15px;
+        }
+
+        .date-header {
+            padding: 14px 18px;
+            background: #fff8f8;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 500;
+            color: #d32f2f;
+        }
+
+        .count-badge {
+            background-color: #e53e3e;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+
+        .records-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .records-container.expanded {
+            max-height: 2000px;
+        }
+
+        .record-item {
+            padding: 16px 18px;
+            border-bottom: 1px solid #fef2f2;
+            position: relative;
+            font-size: 15px;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
+        }
+
+        .record-time {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        /* 删除按钮 */
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #fff0f0;
+            color: #e53e3e;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .record-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        /* 清空全部按钮 */
+        .clear-all-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #e53e3e;
+            border: 1px solid #fcd5d5;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .clear-all-btn:hover {
+            background-color: #fff0f0;
+        }
+
+        /* 提示框 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(229, 62, 62, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 999;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="tab-nav">
+        <div class="tab-item active" onclick="switchTab('explode')">炸掉坏心情</div>
+        <div class="tab-item" onclick="switchTab('history')">历史记录</div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content">
+        <!-- 爆炸页面 -->
+        <div id="explode-tab" class="tab-content active">
+            <div class="explode-box">
+                <!-- 爆炸特效容器 -->
+                <div class="explosion-container" id="explosion-container"></div>
+                
+                <p class="hint-text">把所有愤怒、不满都写下来<br>点击炸弹，炸掉所有坏心情！</p>
+                
+                <textarea 
+                    id="bad-mood-content" 
+                    placeholder="比如：讨厌的老板太过分了！每天加班还不涨工资，真的气死我了..."
+                    oninput="checkInput()">
+                </textarea>
+
+                <button class="explode-btn" id="explode-btn" disabled onclick="explodeBadMood()">
+                    💣 炸掉坏心情
+                </button>
+            </div>
+        </div>
+
+        <!-- 历史记录页面 -->
+        <div id="history-tab" class="tab-content">
+            <button class="clear-all-btn" onclick="clearAllRecords()" id="clear-all-btn" style="display: none;">
+                清空全部记录
+            </button>
+            <div id="history-list">
+                <div class="history-empty">
+                    暂无坏心情记录<br>快去炸掉你的第一个烦恼吧
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示框 -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const RECORD_KEY = 'bad_mood_records';
+
+        // 切换标签页
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(item => item.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            if (tabName === 'history') renderHistoryList();
+        }
+
+        // 检查输入内容，启用/禁用炸弹按钮
+        function checkInput() {
+            const content = document.getElementById('bad-mood-content').value.trim();
+            const explodeBtn = document.getElementById('explode-btn');
+            explodeBtn.disabled = content.length === 0;
+        }
+
+        // 生成爆炸碎片
+        function createExplosion() {
+            const container = document.getElementById('explosion-container');
+            container.style.display = 'block';
+            container.innerHTML = ''; // 清空之前的碎片
+
+            // 生成20个爆炸碎片
+            for (let i = 0; i < 20; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'explosion-piece';
+                
+                // 随机碎片方向和大小
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 100;
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+                
+                piece.style.setProperty('--x', `${x}px`);
+                piece.style.setProperty('--y', `${y}px`);
+                piece.style.backgroundColor = `rgb(${229 + Math.random()*20}, ${62 + Math.random()*30}, ${36 + Math.random()*20})`;
+                
+                container.appendChild(piece);
+            }
+
+            // 页面震动
+            document.body.classList.add('shake');
+            setTimeout(() => {
+                document.body.classList.remove('shake');
+                container.style.display = 'none';
+            }, 600);
+        }
+
+        // 炸掉坏心情核心逻辑
+        function explodeBadMood() {
+            const content = document.getElementById('bad-mood-content').value.trim();
+            
+            // 创建记录
+            const record = {
+                id: Date.now().toString(),
+                content: content,
+                time: new Date().toISOString()
+            };
+
+            // 存储记录
+            let records = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
+            records.push(record);
+            localStorage.setItem(RECORD_KEY, JSON.stringify(records));
+
+            // 触发爆炸特效
+            createExplosion();
+
+            // 清空输入框 + 禁用按钮
+            document.getElementById('bad-mood-content').value = '';
+            document.getElementById('explode-btn').disabled = true;
+
+            // 提示成功
+            showToast('坏心情已炸飞！心情舒畅啦 ✨');
+        }
+
+        // 按日期分组
+        function groupRecordsByDate(records) {
+            const groups = {};
+            records.forEach(record => {
+                const date = new Date(record.time).toISOString().split('T')[0];
+                if (!groups[date]) groups[date] = [];
+                groups[date].push(record);
+            });
+            return Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)).map(date => ({
+                date: date,
+                records: groups[date]
+            }));
+        }
+
+        // 渲染历史记录
+        function renderHistoryList() {
+            const historyList = document.getElementById('history-list');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            let records = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
+
+            if (records.length === 0) {
+                historyList.innerHTML = `<div class="history-empty">暂无坏心情记录<br>快去炸掉你的第一个烦恼吧</div>`;
+                clearAllBtn.style.display = 'none';
+                return;
+            }
+
+            clearAllBtn.style.display = 'block';
+            
+            records.sort((a, b) => new Date(b.time) - new Date(a.time));
+            const groupedRecords = groupRecordsByDate(records);
+
+            let html = '';
+            groupedRecords.forEach(group => {
+                const dateText = formatDate(group.date);
+                html += `
+                    <div class="date-group">
+                        <div class="date-header" onclick="toggleRecords('${group.date}')">
+                            <div>${dateText}</div>
+                            <div class="count-badge">${group.records.length} 条烦恼</div>
+                        </div>
+                        <div id="records-${group.date}" class="records-container">
+                `;
+
+                group.records.forEach(record => {
+                    const time = new Date(record.time).toLocaleTimeString('zh-CN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    
+                    html += `
+                        <div class="record-item">
+                            <button class="delete-btn" onclick="deleteRecord('${record.id}')">删除</button>
+                            <div class="record-time">${time}</div>
+                            <div>${record.content}</div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            });
+
+            historyList.innerHTML = html;
+        }
+
+        // 格式化日期
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`;
+        }
+
+        // 展开/收起记录
+        function toggleRecords(date) {
+            document.getElementById(`records-${date}`).classList.toggle('expanded');
+        }
+
+        // 删除单条记录
+        function deleteRecord(recordId) {
+            if (!confirm('确定删除这条烦恼记录？')) return;
+            
+            let records = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
+            records = records.filter(record => record.id !== recordId);
+            localStorage.setItem(RECORD_KEY, JSON.stringify(records));
+            
+            renderHistoryList();
+            showToast('烦恼记录已删除');
+        }
+
+        // 清空全部记录
+        function clearAllRecords() {
+            if (!confirm('确定清空所有烦恼记录？删除后无法恢复！')) return;
+            
+            localStorage.removeItem(RECORD_KEY);
+            renderHistoryList();
+            showToast('所有烦恼都清空啦');
+        }
+
+        // 提示框
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // 初始化
+        window.onload = () => {
+            renderHistoryList();
+            checkInput();
+        };
+    </script>
+</body>
+</html>
